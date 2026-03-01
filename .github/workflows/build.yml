@@ -13,6 +13,7 @@ jobs:
           - name: Windows DLL
             runs-on: windows-latest
             platform: windows
+            build_dir: build
             cmake_args: -A x64 -DCMAKE_BUILD_TYPE=Release
             artifact_name: ThirdPersonNametag.dll
             artifact_path: build/Release/ThirdPersonNametag.dll
@@ -20,13 +21,15 @@ jobs:
           - name: Android SO (arm64-v8a)
             runs-on: ubuntu-latest
             platform: android
+            build_dir: build-arm64-v8a
             android_abi: arm64-v8a
             artifact_name: libThirdPersonNametag-arm64-v8a
-            artifact_path: build-arm64/libThirdPersonNametag.so
+            artifact_path: build-arm64-v8a/libThirdPersonNametag.so
 
           - name: Android SO (mcpelauncher x86_64)
             runs-on: ubuntu-latest
             platform: android
+            build_dir: build-x86_64
             android_abi: x86_64
             artifact_name: libmcpelauncherTPN-x86_64
             artifact_path: build-x86_64/libmcpelauncherTPN-x86_64.so
@@ -43,22 +46,23 @@ jobs:
         id: ndk
         with:
           ndk-version: r26b
+          local-cache: true   # ← cache NDK between runs to avoid timeout
 
       - name: Configure CMake (Windows)
         if: matrix.platform == 'windows'
-        run: cmake -B build ${{ matrix.cmake_args }}
+        run: cmake -B ${{ matrix.build_dir }} ${{ matrix.cmake_args }}
 
       - name: Configure CMake (Android)
         if: matrix.platform == 'android'
         run: |
-          cmake -B build-${{ matrix.android_abi }} \
+          cmake -B ${{ matrix.build_dir }} \
             -DCMAKE_TOOLCHAIN_FILE=${{ steps.ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
             -DANDROID_ABI=${{ matrix.android_abi }} \
             -DANDROID_PLATFORM=android-24 \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build build-${{ matrix.android_abi || 'win' }} --config Release
+        run: cmake --build ${{ matrix.build_dir }} --config Release
 
       - uses: actions/upload-artifact@v4
         with:
