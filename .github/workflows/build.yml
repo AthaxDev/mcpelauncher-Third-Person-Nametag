@@ -4,7 +4,6 @@ on:
     branches: [main, master]
   pull_request:
   workflow_dispatch:
-
 jobs:
   build:
     strategy:
@@ -17,7 +16,6 @@ jobs:
             cmake_args: -A x64 -DCMAKE_BUILD_TYPE=Release
             artifact_name: ThirdPersonNametag.dll
             artifact_path: build/Release/ThirdPersonNametag.dll
-
           - name: Android SO (arm64-v8a)
             runs-on: ubuntu-latest
             platform: android
@@ -25,7 +23,6 @@ jobs:
             android_abi: arm64-v8a
             artifact_name: libThirdPersonNametag-arm64-v8a
             artifact_path: build-arm64-v8a/libThirdPersonNametag.so
-
           - name: Android SO (mcpelauncher x86_64)
             runs-on: ubuntu-latest
             platform: android
@@ -33,12 +30,17 @@ jobs:
             android_abi: x86_64
             artifact_name: libmcpelauncherTPN-x86_64
             artifact_path: build-x86_64/libmcpelauncherTPN-x86_64.so
-
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runs-on }}
-
     steps:
       - uses: actions/checkout@v4
+
+      - name: Cache NDK
+        if: matrix.platform == 'android'
+        uses: actions/cache@v4
+        with:
+          path: ~/.setup-ndk
+          key: ndk-r26b-${{ runner.os }}
 
       - name: Set up NDK (Android)
         if: matrix.platform == 'android'
@@ -46,11 +48,7 @@ jobs:
         id: ndk
         with:
           ndk-version: r26b
-          local-cache: true   # ← cache NDK between runs to avoid timeout
-      
-      - name: Fix NDK permissions        # ← ADD THIS STEP
-        if: matrix.platform == 'android'
-        run: chmod -R +x ${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/
+          local-cache: false
 
       - name: Configure CMake (Windows)
         if: matrix.platform == 'windows'
