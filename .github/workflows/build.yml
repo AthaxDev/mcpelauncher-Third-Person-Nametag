@@ -1,5 +1,4 @@
 name: Build
-
 on:
   push:
     branches: [main, master]
@@ -13,19 +12,24 @@ jobs:
         include:
           - name: Windows DLL
             runs-on: windows-latest
+            platform: windows
             cmake_args: -A x64 -DCMAKE_BUILD_TYPE=Release
             artifact_name: ThirdPersonNametag.dll
             artifact_path: build/Release/ThirdPersonNametag.dll
 
-          - name: Android SO
+          - name: Android SO (arm64-v8a)
             runs-on: ubuntu-latest
-            artifact_name: libThirdPersonNametag
-            artifact_path: build/libThirdPersonNametag.so
-            
+            platform: android
+            android_abi: arm64-v8a
+            artifact_name: libThirdPersonNametag-arm64-v8a
+            artifact_path: build-arm64/libThirdPersonNametag.so
+
           - name: Android SO (mcpelauncher x86_64)
             runs-on: ubuntu-latest
+            platform: android
+            android_abi: x86_64
             artifact_name: libmcpelauncherTPN-x86_64
-            artifact_path: build/libmcpelauncherTPN-x86_64.so
+            artifact_path: build-x86_64/libmcpelauncherTPN-x86_64.so
 
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runs-on }}
@@ -34,36 +38,27 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up NDK (Android)
-        if: matrix.runs-on == 'ubuntu-latest'
+        if: matrix.platform == 'android'
         uses: nttld/setup-ndk@v1
         id: ndk
         with:
           ndk-version: r26b
 
       - name: Configure CMake (Windows)
-        if: matrix.runs-on == 'windows-latest'
+        if: matrix.platform == 'windows'
         run: cmake -B build ${{ matrix.cmake_args }}
 
       - name: Configure CMake (Android)
-        if: matrix.runs-on == 'ubuntu-latest'
+        if: matrix.platform == 'android'
         run: |
-          cmake -B build \
+          cmake -B build-${{ matrix.android_abi }} \
             -DCMAKE_TOOLCHAIN_FILE=${{ steps.ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-24 \
-            -DCMAKE_BUILD_TYPE=Release
-            
-      - name: Configure CMake (mcpelauncher-manifest x86_64)
-        if: matrix.runs-on == 'ubuntu-latest'
-        run: |
-          cmake -B build \
-            -DCMAKE_TOOLCHAIN_FILE=${{ steps.ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=x86_64 \
+            -DANDROID_ABI=${{ matrix.android_abi }} \
             -DANDROID_PLATFORM=android-24 \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build build-${{ matrix.android_abi || 'win' }} --config Release
 
       - uses: actions/upload-artifact@v4
         with:
