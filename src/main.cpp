@@ -84,6 +84,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID /*reserved*/) {
 }
 
 #else
+#if defined(__aarch64__)
 #include <cstdint>
 #include <cstring>
 #include <sys/mman.h>
@@ -143,4 +144,108 @@ void ThirdPersonNametag_Init() {
     PatchNametag();
 }
 
+#elif defined(__x86_64__)
+#include <dlfcn.h>
+#include <link.h>
+#include <span>
+#include <cstdio>
+#include <cstring>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <libhat.hpp>
+#include <libhat/scanner.hpp>
+
+static bool patch_applied = false;
+
+static bool PatchMemory(void* addr, const void* data, size_t size) {
+    long page_size  = sysconf(_SC_PAGESIZE);
+    uintptr_t start = (uintptr_t)addr & ~((uintptr_t)(page_size - 1));
+    size_t len      = ((uintptr_t)addr + size - start + page_size - 1) & ~((size_t)(page_size - 1));
+
+    if (mprotect((void*)start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+        perror("[-] mprotect RWX failed");
+        return false;
+    }
+    memcpy(addr, data, size);
+    mprotect((void*)start, len, PROT_READ | PROT_EXEC);
+    return true;
+}
+
+extern "C" [[gnu::visibility("default")]] void mod_preinit() {}
+
+extern "C" [[gnu::visibility("default")]] void mod_init() {
+    using namespace hat::literals::signature_literals;
+
+    void* mcLib = dlopen("libminecraftpe.so", 0);
+    if (!mcLib) {
+        printf("[-] patch: failed to open libminecraftpe.so\n");
+        return;
+    }
+
+    std::span<std::byte> range1;
+    auto callback = [&](const dl_phdr_info& info) {
+        auto h = dlopen(info.dlpi_name, RTLD_NOLOAD);
+        dlclose(h);
+        if (h != mcLib) return 0;
+        range1 = {
+            reinterpret_cast<std::byte*>(info.dlpi_addr + info.dlpi_phdr[1].p_vaddr),
+            info.dlpi_phdr[1].p_memsz
+        };
+        return 1;
+    };
+    dl_iterate_phdr([](dl_phdr_info* info, size_t, void* data) {
+        return (*static_cast<decltype(callback)*>(data))(*info);
+    }, &callback);
+
+    if (range1.empty()) {
+        printf("[-] patch: failed to get libminecraftpe.so range\n");
+        return;
+    }
+
+    printf("[+] patch: scanning range %p size 0x%zx\n", range1.data(), range1.size());
+
+    auto match = hat::find_pattern(range1,
+        "4C 8B 23 "
+        "4C 3B 64 24 28 "
+        "0F 84 ?? ?? ?? ?? "
+        "49 89 ED "
+        "49 8B 04 24 "
+        "4C 89 E7 "
+        "FF 90 00 01 00 00 "
+        "84 C0 "
+        "4C 89 ED "
+        "0F 85 ?? ?? ?? ?? "
+        "49 8B 7C 24 10 "
+        "48 8B 47 38 "
+        "48 8B 4F 40 "
+        "48 29 C1 "
+        "48 C1 E9 03 "
+        "FF C9 "
+        "81 E1 A9 81 D9 97 "
+        "48 8B 04 C8 "
+        "48 83 F8 FF"_sig,
+        hat::scan_alignment::X1
+    ).get();
+
+    if (!match) {
+        printf("[-] patch: signature not found\n");
+        return;
+    }
+
+    printf("[+] patch: signature found at %p\n", match);
+
+    void* jz_addr = reinterpret_cast<uint8_t*>(match) + 8;
+    printf("[+] patch: patching jz at %p\n", jz_addr);
+
+    static const uint8_t NOP6[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+
+    if (PatchMemory(jz_addr, NOP6, sizeof(NOP6))) {
+        printf("[+] patch: jz NOPed successfully\n");
+        patch_applied = true;
+    } else {
+        printf("[-] patch: patch failed\n");
+    }
+}
+
+#endif
 #endif
