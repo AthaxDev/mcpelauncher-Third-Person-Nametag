@@ -17,7 +17,7 @@ I'd like to thank [Dasciam](https://github.com/Dasciam) for helping create the A
 | -------- | -------------------------------------------------------------------- |
 | Windows  | [LeviLauncher (GDK)](https://github.com/LiteLDev/LeviLauncher)       |
 | Android  | [LeviLauncher (Android)](https://github.com/LiteLDev/LeviLaunchroid) |
-| Linu | [mcpelauncher-manifest](https://github.com/minecraft-linux/mcpelauncher-manifest) |
+| Linux | [mcpelauncher-manifest](https://github.com/minecraft-linux/mcpelauncher-manifest) |
 
 ## Installation
 
