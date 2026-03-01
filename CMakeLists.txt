@@ -43,7 +43,9 @@ if(ANDROID)
     elseif(ANDROID_ABI STREQUAL "x86_64")
         message("Building for mcpelauncher-manifest x86_64")
 
-        set_target_properties(ThirdPersonNametag PROPERTIES CXX_STANDARD 23)
+        set_target_properties(ThirdPersonNametag PROPERTIES 
+            CXX_STANDARD 23
+            OUTPUT_NAME "mcpelauncherTPN-x86_64")
 
         FetchContent_Declare(libhat
             GIT_REPOSITORY https://github.com/BasedInc/libhat.git
