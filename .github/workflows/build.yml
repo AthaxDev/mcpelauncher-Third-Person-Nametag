@@ -47,6 +47,10 @@ jobs:
         with:
           ndk-version: r26b
           local-cache: true   # ← cache NDK between runs to avoid timeout
+      
+      - name: Fix NDK permissions        # ← ADD THIS STEP
+        if: matrix.platform == 'android'
+        run: chmod -R +x ${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/
 
       - name: Configure CMake (Windows)
         if: matrix.platform == 'windows'
