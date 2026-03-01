@@ -24,7 +24,7 @@ jobs:
             
           - name: Android SO (mcpelauncher x86_64)
             runs-on: ubuntu-latest
-            artifact_name: libThirdPersonNametag
+            artifact_name: libmcpelauncherTPN-x86_64
             artifact_path: build/libmcpelauncherTPN-x86_64.so
 
     name: ${{ matrix.name }}
