@@ -9,6 +9,7 @@ I'd like to thank [Dasciam](https://github.com/Dasciam) for helping create the A
 - Shows your nametag when in third person view.
 - Windows support: v26.2.1
 - Android support: v26.2.1
+- Linux support: not tested on v26.2.1 but 1.21.130.3 work
 
 ## Requirements
 
@@ -16,6 +17,7 @@ I'd like to thank [Dasciam](https://github.com/Dasciam) for helping create the A
 | -------- | -------------------------------------------------------------------- |
 | Windows  | [LeviLauncher (GDK)](https://github.com/LiteLDev/LeviLauncher)       |
 | Android  | [LeviLauncher (Android)](https://github.com/LiteLDev/LeviLaunchroid) |
+| Linu | [mcpelauncher-manifest](https://github.com/minecraft-linux/mcpelauncher-manifest) |
 
 ## Installation
 
@@ -32,6 +34,13 @@ I'd like to thank [Dasciam](https://github.com/Dasciam) for helping create the A
 2. Install LeviLauncher (Android).
 3. Add `libThirdPersonNametag.so` as a mod in LeviLauncher.
 4. Launch Minecraft through LeviLauncher.
+
+### Linux
+
+1. Download `libmcpelauncherTPN-x86_64.so` from [Releases](../../releases) or GitHub Actions.
+2. Install mcpelauncher-manifest.
+3. Add `libmcpelauncherTPN-x86_64.so` to mods folder
+4. Launch Minecraft through mcpelauncher-ui-qt/mcpelauncher-client.
 
 ## Building
 
@@ -51,6 +60,18 @@ cmake --build build --config Release
 cmake -B build \
   -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
   -DANDROID_ABI=arm64-v8a \
+  -DANDROID_PLATFORM=android-24 \
+  -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+# Output: build/libThirdPersonNametag.so
+```
+
+### Android SO (mcpelauncher) (requires NDK)
+
+```sh
+cmake -B build \
+  -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
+  -DANDROID_ABI=x86_64 \
   -DANDROID_PLATFORM=android-24 \
   -DCMAKE_BUILD_TYPE=Release
 cmake --build build
